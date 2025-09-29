@@ -1,0 +1,67 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Socket Room Listener</title>
+    <style>
+      body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif; margin: 24px; }
+      .row { display: flex; gap: 8px; margin-bottom: 12px; align-items: center; }
+      input, button { padding: 8px 12px; font-size: 14px; }
+      button { cursor: pointer; }
+      #log { border: 1px solid #ddd; padding: 12px; min-height: 200px; white-space: pre-wrap; }
+    </style>
+  </head>
+  <body>
+    <h1>Socket Room Listener</h1>
+    <div class="row" style="margin-bottom: 0">
+      <strong>Status:</strong>
+      <span id="status" style="padding:2px 6px;border:1px solid #ddd;border-radius:4px">idle</span>
+    </div>
+    <div class="row">
+      <label>Room ID:</label>
+      <input id="roomId" placeholder="room-1" />
+      <button id="connectBtn">Connect & Join</button>
+    </div>
+    <h3>Log</h3>
+    <div id="log"></div>
+
+    <script src="https://cdn.socket.io/4.7.5/socket.io.min.js" crossorigin="anonymous"></script>
+    <script>
+      const log = (msg) => {
+        const el = document.getElementById('log');
+        const time = new Date().toLocaleTimeString();
+        el.textContent += `[${time}] ${msg}\n`;
+        el.scrollTop = el.scrollHeight;
+      };
+
+      const setStatus = (text, color = '#333') => {
+        const el = document.getElementById('status');
+        el.textContent = text;
+        el.style.color = color;
+      };
+
+      let socket;
+      document.getElementById('connectBtn').addEventListener('click', () => {
+        const roomId = document.getElementById('roomId').value.trim();
+        if (!roomId) { alert('Enter room id'); return; }
+        if (socket) { socket.disconnect(); }
+        setStatus('connecting...', '#8a6d3b');
+        log('connecting to ' + window.location.origin + ' ...');
+        socket = io(window.location.origin, { path: '/socket.io', transports: ['polling','websocket'] });
+        socket.on('connect', () => {
+          log('connected ' + socket.id);
+          setStatus('connected', '#3c763d');
+          socket.emit('join', { id: roomId });
+        });
+        socket.on('joined', (data) => log('joined room ' + data.roomId));
+        socket.on('history', (data) => log('history actions: ' + JSON.stringify(data.actions)));
+        socket.on('actions', (data) => log('actions(array): ' + JSON.stringify(data)));
+        socket.on('disconnect', () => { log('disconnected'); setStatus('disconnected', '#a94442'); });
+        socket.on('connect_error', (e) => { log('connect_error: ' + (e && e.message || JSON.stringify(e))); setStatus('connect_error', '#a94442'); });
+      });
+    </script>
+  </body>
+  </html>
+
+

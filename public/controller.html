@@ -1,0 +1,106 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Actions Controller Tester</title>
+    <style>
+      body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif; margin: 24px; }
+      .row { display: flex; gap: 8px; margin-bottom: 12px; align-items: center; }
+      input, button { padding: 8px 12px; font-size: 14px; }
+      button { cursor: pointer; }
+      #log { border: 1px solid #ddd; padding: 12px; min-height: 200px; white-space: pre-wrap; }
+      .grid { display: grid; grid-template-columns: 1fr auto; gap: 8px; align-items: center; }
+      label { font-weight: 600; }
+    </style>
+  </head>
+  <body>
+    <h1>Actions Controller Tester</h1>
+    <div class="grid">
+      <label for="roomId">Room ID</label>
+      <input id="roomId" placeholder="room-1" />
+      <label for="seq">Actions (comma-separated)</label>
+      <input id="seq" placeholder="forward,turnRight,turnLeft" />
+      <label for="delay">delayMs</label>
+      <input id="delay" type="number" min="0" step="50" value="0" />
+    </div>
+    <div class="row">
+      <button id="send">POST /sendActions</button>
+      <button id="rooms">GET /rooms</button>
+      <button id="clients">GET /rooms/:id/clients</button>
+      <button id="history">GET /rooms/:id/history</button>
+      <button id="clearHistory">POST /rooms/:id/history/clear</button>
+      <button id="lastSeq">GET /rooms/:id/last-sequence</button>
+      <button id="clearLastSeq">POST /rooms/:id/last-sequence/clear</button>
+    </div>
+    <h3>Log</h3>
+    <div id="log"></div>
+
+    <script>
+      const log = (msg) => {
+        const el = document.getElementById('log');
+        const time = new Date().toLocaleTimeString();
+        el.textContent += `[${time}] ${msg}\n`;
+        el.scrollTop = el.scrollHeight;
+      };
+
+      const getRoom = () => document.getElementById('roomId').value.trim();
+      const getSeq = () => document.getElementById('seq').value.trim();
+      const getDelay = () => parseInt(document.getElementById('delay').value, 10) || 0;
+
+      document.getElementById('send').addEventListener('click', async () => {
+        const id = getRoom();
+        if (!id) { alert('Enter room id'); return; }
+        const actions = getSeq().split(',').map(s => s.trim()).filter(Boolean);
+        if (!actions.length) { alert('Enter at least one action'); return; }
+        const delayMs = getDelay();
+        const res = await fetch('/sendActions', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id, actions, delayMs }) });
+        const data = await res.json().catch(() => ({}));
+        log('POST /sendActions -> ' + res.status + ' ' + JSON.stringify(data));
+      });
+
+      document.getElementById('rooms').addEventListener('click', async () => {
+        const res = await fetch('/rooms');
+        const data = await res.json().catch(() => ({}));
+        log('GET /rooms -> ' + res.status + ' ' + JSON.stringify(data));
+      });
+
+      document.getElementById('clients').addEventListener('click', async () => {
+        const id = getRoom(); if (!id) { alert('Enter room id'); return; }
+        const res = await fetch(`/rooms/${encodeURIComponent(id)}/clients`);
+        const data = await res.json().catch(() => ({}));
+        log(`GET /rooms/${id}/clients -> ` + res.status + ' ' + JSON.stringify(data));
+      });
+
+      document.getElementById('history').addEventListener('click', async () => {
+        const id = getRoom(); if (!id) { alert('Enter room id'); return; }
+        const res = await fetch(`/rooms/${encodeURIComponent(id)}/history`);
+        const data = await res.json().catch(() => ({}));
+        log(`GET /rooms/${id}/history -> ` + res.status + ' ' + JSON.stringify(data));
+      });
+
+      document.getElementById('clearHistory').addEventListener('click', async () => {
+        const id = getRoom(); if (!id) { alert('Enter room id'); return; }
+        const res = await fetch(`/rooms/${encodeURIComponent(id)}/history/clear`, { method: 'POST' });
+        const data = await res.json().catch(() => ({}));
+        log(`POST /rooms/${id}/history/clear -> ` + res.status + ' ' + JSON.stringify(data));
+      });
+
+      document.getElementById('lastSeq').addEventListener('click', async () => {
+        const id = getRoom(); if (!id) { alert('Enter room id'); return; }
+        const res = await fetch(`/rooms/${encodeURIComponent(id)}/last-sequence`);
+        const data = await res.json().catch(() => ({}));
+        log(`GET /rooms/${id}/last-sequence -> ` + res.status + ' ' + JSON.stringify(data));
+      });
+
+      document.getElementById('clearLastSeq').addEventListener('click', async () => {
+        const id = getRoom(); if (!id) { alert('Enter room id'); return; }
+        const res = await fetch(`/rooms/${encodeURIComponent(id)}/last-sequence/clear`, { method: 'POST' });
+        const data = await res.json().catch(() => ({}));
+        log(`POST /rooms/${id}/last-sequence/clear -> ` + res.status + ' ' + JSON.stringify(data));
+      });
+    </script>
+  </body>
+  </html>
+
+
