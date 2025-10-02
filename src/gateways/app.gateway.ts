@@ -38,7 +38,7 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
   @SubscribeMessage('join')
   // app.gateway.ts
-handleJoin(client: Socket, payload: { id: string }) {
+  handleJoin(client: Socket, payload: { id: string }) {
   const roomId = payload?.id;
   if (!roomId) return client.emit('error', { message: 'id is required' });
 
@@ -62,66 +62,6 @@ handleJoin(client: Socket, payload: { id: string }) {
     if (roomId) {
       this.createdRooms.add(roomId);
     }
-  }
-
-  setRoomTtl(roomId: string, ttlSeconds: number) {
-    if (!roomId || !Number.isFinite(ttlSeconds) || ttlSeconds <= 0) return;
-    // clear previous
-    const prev = this.roomExpiryTimers.get(roomId);
-    if (prev) clearTimeout(prev);
-    const ttlMs = Math.floor(ttlSeconds * 1000);
-    const expireAt = Date.now() + ttlMs;
-    this.roomExpiryAt.set(roomId, expireAt);
-    const timer = setTimeout(() => {
-      this.expireRoom(roomId);
-    }, ttlMs);
-    this.roomExpiryTimers.set(roomId, timer);
-  }
-
-  private expireRoom(roomId: string) {
-    // Notify clients
-    this.server.to(roomId).emit('roomExpired', { roomId, expiredAt: Date.now() });
-    // Disconnect all clients in the room
-    const clientIds = this.getRoomClientIds(roomId);
-    for (const id of clientIds) {
-      const socket = this.server.sockets.sockets.get(id);
-      if (socket) {
-        try {
-          socket.leave(roomId);
-          socket.disconnect(true);
-        } catch {}
-      }
-    }
-    // Cleanup
-    this.createdRooms.delete(roomId);
-    const t = this.roomExpiryTimers.get(roomId);
-    if (t) clearTimeout(t);
-    this.roomExpiryTimers.delete(roomId);
-    this.roomExpiryAt.delete(roomId);
-  }
-
-  getRoomExpiry(roomId: string): number | undefined {
-    return this.roomExpiryAt.get(roomId);
-  }
-
-  getActiveRooms(): string[] {
-    if (!this.server) return [];
-    const { rooms } = this.server.sockets.adapter;
-    const socketIds = new Set(this.server.sockets.sockets.keys());
-    const result: Set<string> = new Set(this.createdRooms);
-    rooms.forEach((_set, roomId) => {
-      if (!socketIds.has(roomId)) {
-        result.add(roomId);
-      }
-    });
-    return Array.from(result);
-  }
-
-  getRoomClientIds(roomId: string): string[] {
-    if (!this.server) return [];
-    const room = this.server.sockets.adapter.rooms.get(roomId);
-    if (!room) return [];
-    return Array.from(room);
   }
 }
 
