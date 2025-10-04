@@ -37,22 +37,18 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect {
   }
 
   @SubscribeMessage('join')
-  // app.gateway.ts
   handleJoin(client: Socket, payload: { id: string }) {
-  const roomId = payload?.id;
-  if (!roomId) return client.emit('error', { message: 'id is required' });
+    const roomId = payload?.id;
+    if (!roomId) return client.emit('error', { message: 'id is required' });
 
-  // Chỉ cho join nếu room đã được tạo bằng API (ensureRoom) hoặc có TTL đã đặt
-  const allowed = this.createdRooms.has(roomId);
-  if (!allowed) {
-    return client.emit('error', { message: 'room not found. Please createRoom first.' });
+    // Auto-create room if it doesn't exist
+    this.ensureRoom(roomId);
+
+    client.join(roomId);
+    client.emit('joined', { roomId });
+    const last = this.log.getLastSequence(roomId) ?? [];
+    client.emit('actions', { roomId, actions: last });
   }
-
-  client.join(roomId);
-  client.emit('joined', { roomId });
-  const last = this.log.getLastSequence(roomId) ?? [];
-  client.emit('actions', { roomId, actions: last });
-}
 
   emitActions(roomId: string, actions: string[]) {
     this.server.to(roomId).emit('actions', { actions: [...actions], roomId, timestamp: Date.now() });

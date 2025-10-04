@@ -3,7 +3,7 @@ import { ApiBody, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { AppGateway } from '../gateways/app.gateway';
 import { ActionLogService } from '../services/action-log.service';
 
-const ACTIONS = ['forward', 'turnRight', 'turnLeft', 'turnBack', 'victory', 'defeat'] as const;
+const ACTIONS = ['forward', 'turnRight', 'turnLeft', 'turnBack', 'collectYellow','collectRed','collectBlue','collectGreen','victory', 'defeat'] as const;
 type ActionType = typeof ACTIONS[number];
 
 @Controller()
